@@ -27,11 +27,44 @@ local currentMenu
 local menuChanged
 local menuHistory = {}
 local nearbyZones
+local debug = GetConvarInt('ox_target:debug', 0) == 1
+local proximity = not debug
+local selectOption
+local lastSelection = -1000
+local function releaseFocus()
+    if state.isNuiFocused() then state.setNuiFocus(false, false) end
+    if proximity then SendNuiMessage('{"event":"interactionBlur"}') end
+end
+local function blocked()
+    if IsNuiFocused() and not state.isNuiFocused() then return true end
+    if IsPauseMenuActive() or IsEntityDead(cache.ped) or LocalPlayer.state.dtlibUiSuspended then return true end
+    if GetResourceState('DTlib') == 'started' then
+        local ok, active = pcall(function() return exports.DTlib:ProgressActive() end)
+        if ok and active then return true end
+    end
+    return lib.progressActive()
+end
+
+local function confirmInteraction()
+    if not proximity or not state.isActive() or state.isNuiFocused() or blocked() then return end
+    local candidates = {}
+    for kind, list in pairs(options) do
+        if type(list) == 'table' then for index, option in ipairs(list) do
+            if not option.hide then candidates[#candidates+1] = {kind,index} end
+        end end
+    end
+    for zoneIndex, zone in ipairs(nearbyZones or {}) do for index, option in ipairs(zone.options) do
+        if not option.hide then candidates[#candidates+1] = {'zones',index,zoneIndex} end
+    end end
+    if #candidates > 0 then
+        state.setNuiFocus(true, true)
+        SendNuiMessage('{"event":"interactionFocus"}')
+    end
+end
 
 -- Toggle ox_target, instead of holding the hotkey
 local toggleHotkey = GetConvarInt('ox_target:toggleHotkey', 0) == 1
 local mouseButton = GetConvarInt('ox_target:leftClick', 1) == 1 and 24 or 25
-local debug = GetConvarInt('ox_target:debug', 0) == 1
 local vec0 = vec3(0, 0, 0)
 
 ---@param option OxTargetOption
@@ -124,7 +157,7 @@ local function shouldHide(option, distance, endCoords, entityHit, entityType, en
 end
 
 local function startTargeting()
-    if state.isDisabled() or state.isActive() or IsNuiFocused() or IsPauseMenuActive() then return end
+    if state.isDisabled() or state.isActive() or IsNuiFocused() or blocked() then return end
 
     state.setActive(true)
 
@@ -147,20 +180,22 @@ local function startTargeting()
             end
 
             utils.drawZoneSprites(dict, texture)
-            DisablePlayerFiring(cache.playerId, true)
-            DisableControlAction(0, 25, true)
-            DisableControlAction(0, 140, true)
-            DisableControlAction(0, 141, true)
-            DisableControlAction(0, 142, true)
+            if not proximity or state.isNuiFocused() then
+                DisablePlayerFiring(cache.playerId, true)
+                DisableControlAction(0, 25, true)
+                DisableControlAction(0, 140, true)
+                DisableControlAction(0, 141, true)
+                DisableControlAction(0, 142, true)
+            end
 
             if state.isNuiFocused() then
                 DisableControlAction(0, 1, true)
                 DisableControlAction(0, 2, true)
 
                 if not hasTarget or options and IsDisabledControlJustPressed(0, 25) then
-                    state.setNuiFocus(false, false)
+                    releaseFocus()
                 end
-            elseif hasTarget and IsDisabledControlJustPressed(0, mouseButton) then
+            elseif not proximity and hasTarget and IsDisabledControlJustPressed(0, mouseButton) then
                 state.setNuiFocus(true, true)
             end
 
@@ -171,7 +206,7 @@ local function startTargeting()
     end)
 
     while state.isActive() do
-        if not state.isNuiFocused() and lib.progressActive() then
+        if blocked() or (IsNuiFocused() and not state.isNuiFocused()) then
             state.setActive(false)
             break
         end
@@ -228,7 +263,8 @@ local function startTargeting()
             end
         end
 
-        if hasTarget and (zonesChanged or entityChanged and hasTarget > 1) then
+        if hasTarget and (zonesChanged or entityChanged and (proximity or hasTarget > 1)) then
+            if proximity then releaseFocus() end
             SendNuiMessage('{"event": "leftTarget"}')
 
             if entityChanged then options:wipe() end
@@ -294,6 +330,7 @@ local function startTargeting()
             end
 
             if hasTarget and hidden == totalOptions then
+                if proximity then releaseFocus() end
                 if hasTarget and hasTarget ~= 1 then
                     hasTarget = false
                     SendNuiMessage('{"event": "leftTarget"}')
@@ -314,6 +351,7 @@ local function startTargeting()
 
                 SendNuiMessage(json.encode({
                     event = 'setTarget',
+                    proximity = proximity,
                     options = options,
                     zones = zones,
                 }, { sort_keys = true }))
@@ -337,7 +375,7 @@ local function startTargeting()
         SetEntityDrawOutline(lastEntity, false)
     end
 
-    state.setNuiFocus(false)
+    releaseFocus()
     SendNuiMessage('{"event": "visible", "state": false}')
     table.wipe(currentTarget)
     options:wipe()
@@ -348,13 +386,15 @@ end
 do
     ---@type KeybindProps
     local keybind = {
-        name = 'ox_target',
-        defaultKey = GetConvar('ox_target:defaultHotkey', 'LMENU'),
+        name = proximity and 'ox_target_interact' or 'ox_target_debug',
+        defaultKey = proximity and 'E' or 'LMENU',
         defaultMapper = 'keyboard',
         description = locale('toggle_targeting'),
     }
 
-    if toggleHotkey then
+    if proximity then
+        keybind.onPressed = confirmInteraction
+    elseif toggleHotkey then
         function keybind:onPressed()
             if state.isActive() then
                 return state.setActive(false)
@@ -402,13 +442,26 @@ local function getResponse(option, server)
     return response
 end
 
-RegisterNUICallback('select', function(data, cb)
-    cb(1)
+selectOption = function(data)
+    if proximity and not state.isNuiFocused() then return end
+    if type(data) ~= 'table' or state.isDisabled() or not state.isActive() or blocked() then return end
+    if GetGameTimer() - lastSelection < 350 then return end
+    local index = tonumber(data[2])
+    if not index or index < 1 or index % 1 ~= 0 then return end
+    if data[3] and (type(data[3])~='number' or data[3]<1 or data[3]%1~=0) then return end
 
     local zone = data[3] and nearbyZones[data[3]]
 
     ---@type OxTargetOption?
-    local option = zone and zone.options[data[2]] or options[data[1]][data[2]]
+    local list = zone and zone.options or type(data[1])=='string' and options[data[1]]
+    local option = type(list)=='table' and list[index]
+    local entity = currentTarget.entity or 0
+    if not option or not currentTarget.coords then return end
+    if entity~=0 and not DoesEntityExist(entity) then return end
+    local distance = #(GetEntityCoords(cache.ped)-currentTarget.coords)
+    if option.hide or shouldHide(option, distance, currentTarget.coords, entity,
+        entity~=0 and GetEntityType(entity) or 0, entity~=0 and GetEntityModel(entity) or nil) then return end
+    lastSelection = GetGameTimer()
 
     if option then
         if option.openMenu then
@@ -430,7 +483,7 @@ RegisterNUICallback('select', function(data, cb)
 
             options:wipe()
         else
-            state.setNuiFocus(false)
+            releaseFocus()
         end
 
         currentTarget.zone = zone?.id
@@ -450,7 +503,19 @@ RegisterNUICallback('select', function(data, cb)
         if option.menuName == 'home' then return end
     end
 
-    if not option?.openMenu and IsNuiFocused() then
+    if not proximity and not option?.openMenu and IsNuiFocused() then
         state.setActive(false)
+    end
+end
+
+RegisterNUICallback('select', function(data, cb) cb(1);selectOption(data) end)
+RegisterNUICallback('interactionClose', function(_, cb) releaseFocus();cb(1) end)
+
+CreateThread(function()
+    if not proximity then return end
+    SendNuiMessage('{"event":"interactionMode","proximity":true}')
+    while true do
+        if not state.isActive() then startTargeting() end
+        Wait(500)
     end
 end)
