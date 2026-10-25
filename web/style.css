@@ -1,91 +1,548 @@
-@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap');
 
 :root {
-  --color-default: #cfd2da;
-  --color-hover: white;
+  /* DT / DELTA HORIZON - compact apocalypse target */
+  --text: #eee9dd;
+  --text-dim: #b8b09f;
+  --text-muted: #777166;
+
+  --panel: rgba(14, 15, 13, 0.965);
+  --panel-top: rgba(27, 28, 24, 0.975);
+  --panel-hover: rgba(32, 31, 25, 0.985);
+
+  --border: rgba(190, 171, 126, 0.18);
+  --border-strong: rgba(222, 191, 112, 0.54);
+  --accent: #c7ad6d;
+  --accent-bright: #e0c57e;
+  --accent-soft: rgba(199, 173, 109, 0.11);
+
+  --branch: rgba(157, 145, 113, 0.62);
+  --branch-active: rgba(224, 197, 126, 0.92);
+
+  --shadow: rgba(0, 0, 0, 0.62);
+  --anim: 210ms;
+
+  --option-height: clamp(40px, 4vh, 46px);
+  --option-width: clamp(194px, 13.6vw, 246px);
+  --option-gap-y: clamp(7px, 0.8vh, 10px);
+  --connector-width: clamp(25px, 1.8vw, 32px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  background: transparent !important;
+  background-color: rgba(0, 0, 0, 0) !important;
 }
 
 body {
   visibility: hidden;
+  background: transparent !important;
+  background-color: rgba(0, 0, 0, 0) !important;
   user-select: none;
-  white-space: nowrap;
   margin: 0;
-  user-select: none;
   overflow: hidden;
+  white-space: nowrap;
+  font-family: "Space Grotesk", Arial, sans-serif;
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 p {
   margin: 0;
 }
 
-.material-symbols-outlined {
-  font-variation-settings: "FILL" 0, "wght" 300, "GRAD" 0, "opsz" 40;
-}
-
-#eye {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 22pt;
-  fill: black;
-}
-
-.eye-hover {
-  fill: var(--color-default);
-}
+/* =========================================================
+   TREE POSITION
+   ========================================================= */
 
 #options-wrapper {
   position: absolute;
-  top: calc(48.4%);
-  left: calc(50% + 18pt);
+  left: 50%;
+  bottom: calc(50% + 10px);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 0;
+  pointer-events: none;
 }
 
-.option-container {
-  color: var(--color-default);
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
+#options-wrapper.preparing,
+#trunk.preparing {
+  visibility: hidden;
+}
+
+/* =========================================================
+   CENTER TARGET / TRUNK
+   ========================================================= */
+
+#trunk {
+  position: absolute;
+  left: 50%;
+  bottom: 50%;
+  transform: translateX(-50%);
+  transform-origin: bottom center;
+  overflow: visible;
+  pointer-events: none;
+}
+
+#trunk line {
+  stroke: var(--branch);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.75));
+}
+
+#trunk.animate line {
+  animation: drawTrunk var(--anim) ease-out forwards;
+}
+
+@keyframes drawTrunk {
+  to { stroke-dashoffset: 0; }
+}
+
+#trunk-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: var(--accent);
+  border: 1px solid rgba(255, 237, 190, 0.42);
+  border-radius: 1px;
+  box-shadow:
+    0 0 0 3px rgba(0, 0, 0, 0.45),
+    0 0 10px rgba(199, 173, 109, 0.26);
+  opacity: 0;
+  z-index: 100;
+  pointer-events: none;
+}
+
+#trunk-dot.animate {
+  animation: showDot 180ms ease-out forwards;
+}
+
+@keyframes showDot {
+  from { opacity: 0; transform: translate(-50%, -50%) rotate(45deg) scale(0.55); }
+  to   { opacity: 1; transform: translate(-50%, -50%) rotate(45deg) scale(1); }
+}
+
+/* =========================================================
+   ROW / BRANCH LAYOUT
+   ========================================================= */
+
+.option-row {
+  position: relative;
+  width: 100%;
+  min-height: calc(var(--option-height) + var(--option-gap-y));
+  margin: calc(var(--option-gap-y) / 2) 0;
+  display: grid;
+  grid-template-columns: 1fr 0 1fr;
   align-items: center;
-  font-family: "Nunito";
-  background: linear-gradient(
-    90deg,
-    rgba(20, 20, 20, 0.7) 0%,
-    rgba(20, 20, 20, 0.6) 66%,
-    rgba(47, 48, 53, 0) 100%
-  );
-  font-size: 11pt;
-  line-height: 22pt;
-  vertical-align: middle;
-  margin: 2pt;
-  transition: 300ms;
-  transform-origin: left top;
-  scale: 1;
-  height: 22pt;
-  width: 150pt;
+  pointer-events: auto;
+}
+
+.option-row-left,
+.option-row-right {
+  display: flex;
+  align-items: center;
+}
+
+.option-row-left {
+  justify-content: flex-end;
+}
+
+.option-row-right {
+  justify-content: flex-start;
+}
+
+.option-row-center {
+  width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.branch {
+  display: flex;
+  align-items: center;
+}
+
+.branch-left,
+.branch-right {
+  flex-direction: row;
+}
+
+.branch-connector-wrapper {
+  position: relative;
+  width: var(--connector-width);
+  height: calc(var(--option-height) - 5px);
+  overflow: visible;
+  flex-shrink: 0;
+}
+
+.branch-connector-wrapper-left {
+  clip-path: inset(0 1px -12px 0);
+}
+
+.branch-connector-wrapper-right {
+  clip-path: inset(0 0 -12px 1px);
+}
+
+.branch-connector {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.branch-connector path {
+  fill: none;
+  stroke: var(--branch);
+  stroke-width: 1.15;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  vector-effect: non-scaling-stroke;
+  transition: stroke 160ms ease, filter 160ms ease;
+}
+
+.branch-connector path.animate {
+  animation: drawBranch var(--anim) ease-out forwards;
+}
+
+@keyframes drawBranch {
+  to { stroke-dashoffset: 0; }
+}
+
+.branch:hover .branch-connector path {
+  stroke: var(--branch-active);
+  filter: drop-shadow(0 0 3px rgba(199, 173, 109, 0.22));
+}
+
+/* =========================================================
+   OPTION CARD
+   ========================================================= */
+
+.option-container {
+  position: relative;
+  width: var(--option-width);
+  height: var(--option-height);
+  min-width: var(--option-width);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px 0 8px;
+  overflow: hidden;
+  cursor: pointer;
+  pointer-events: auto;
+
+  color: var(--text);
+  background:
+    linear-gradient(90deg, rgba(199, 173, 109, 0.035), transparent 34%),
+    linear-gradient(180deg, var(--panel-top), var(--panel));
+
+  border: 1px solid var(--border);
+  border-left: 2px solid rgba(199, 173, 109, 0.45);
+  border-radius: 4px;
+
+  box-shadow:
+    0 7px 20px var(--shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.025),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.48);
+
+  opacity: 0;
+  transform: translateX(8px);
+  transition:
+    transform 150ms ease,
+    background 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.option-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--accent-soft), transparent 72%);
+  opacity: 0;
+  transition: opacity 150ms ease;
+  pointer-events: none;
+}
+
+.option-container::after {
+  content: "";
+  position: absolute;
+  left: 9px;
+  right: 9px;
   top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(231, 208, 151, 0.18), transparent);
+  pointer-events: none;
+}
+
+.option-container > * {
+  position: relative;
+  z-index: 1;
 }
 
 .option-container:hover {
-  background: linear-gradient(
-    90deg,
-    rgba(30, 30, 30, 0.7) 0%,
-    rgba(30, 30, 30, 0.6) 66%,
-    rgba(57, 58, 63, 0) 100%
-  );
-  transform-origin: left top;
-  color: var(--color-hover);
-  margin-left: 4pt;
+  transform: translateX(-3px);
+  background:
+    linear-gradient(90deg, rgba(199, 173, 109, 0.10), transparent 42%),
+    linear-gradient(180deg, rgba(39, 38, 31, 0.99), var(--panel-hover));
+  border-color: var(--border-strong);
+  border-left-color: var(--accent-bright);
+  box-shadow:
+    0 9px 22px rgba(0, 0, 0, 0.68),
+    0 0 11px rgba(199, 173, 109, 0.08),
+    inset 0 1px 0 rgba(255, 242, 205, 0.04);
 }
+
+.option-container:hover::before {
+  opacity: 1;
+}
+
+.branch-left .option-container {
+  flex-direction: row-reverse;
+  padding: 0 8px 0 12px;
+  transform: translateX(-8px);
+  border-left: 1px solid var(--border);
+  border-right: 2px solid rgba(199, 173, 109, 0.45);
+}
+
+.branch-left .option-container:hover {
+  transform: translateX(3px);
+  border-left-color: var(--border-strong);
+  border-right-color: var(--accent-bright);
+}
+
+.branch-left .option-container::before {
+  background: linear-gradient(270deg, var(--accent-soft), transparent 72%);
+}
+
+/* =========================================================
+   ICON
+   ========================================================= */
 
 .option-icon {
-  font-size: 12pt;
-  line-height: 22pt;
-  width: 14pt;
-  margin: 5pt;
-  color: var(--color-default);
+  width: 27px;
+  height: 27px;
+  min-width: 27px;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  color: var(--accent);
+  font-size: 11px;
+  line-height: 1;
+
+  background: rgba(199, 173, 109, 0.045);
+  border: 1px solid rgba(199, 173, 109, 0.22);
+  border-radius: 2px;
+  box-shadow: inset 0 0 7px rgba(0, 0, 0, 0.38);
+
+  transition:
+    color 150ms ease,
+    background 150ms ease,
+    border-color 150ms ease,
+    transform 150ms ease;
 }
 
+.option-icon i {
+  width: auto;
+}
+
+.option-container:hover .option-icon {
+  color: var(--accent-bright) !important;
+  background: rgba(199, 173, 109, 0.095);
+  border-color: rgba(224, 197, 126, 0.42) !important;
+  transform: scale(1.04);
+}
+
+/* =========================================================
+   LABEL
+   ========================================================= */
+
 .option-label {
-  font-weight: 500;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: var(--text-dim);
+  font-family: "Space Grotesk", Arial, sans-serif;
+  font-size: clamp(10.5px, 0.68vw, 12.4px);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: 0.012em;
+  font-kerning: normal;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.9);
+
+  transition: color 150ms ease;
+}
+
+.branch-left .option-label {
+  text-align: right;
+}
+
+.option-container:hover .option-label {
+  color: var(--text);
+}
+
+/* =========================================================
+   ENTRY ANIMATION
+   ========================================================= */
+
+.option-container.animate {
+  animation: enterRight var(--anim) cubic-bezier(0.18, 0.82, 0.25, 1) forwards;
+}
+
+.branch-left .option-container.animate {
+  animation: enterLeft var(--anim) cubic-bezier(0.18, 0.82, 0.25, 1) forwards;
+}
+
+@keyframes enterRight {
+  from { opacity: 0; transform: translateX(8px) scale(0.985); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes enterLeft {
+  from { opacity: 0; transform: translateX(-8px) scale(0.985); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* =========================================================
+   SINGLE / CENTER OPTION
+   ========================================================= */
+
+.option-row.single-option {
+  grid-template-columns: 1fr;
+  justify-items: center;
+}
+
+.option-row.single-option .branch-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.option-row.single-option .option-container {
+  justify-content: flex-start;
+  width: var(--option-width);
+  min-width: var(--option-width);
+  padding: 0 10px;
+  transform: translateY(6px);
+  border-left: 2px solid rgba(199, 173, 109, 0.45);
+  border-right: 2px solid rgba(199, 173, 109, 0.45);
+}
+
+.option-row.single-option .option-label {
+  text-align: left;
+}
+
+.option-row.single-option .option-container.animate {
+  animation: enterCenter var(--anim) ease-out forwards;
+}
+
+.option-row.single-option .option-container:hover {
+  transform: translateY(-2px);
+  border-left-color: var(--accent-bright);
+  border-right-color: var(--accent-bright);
+}
+
+@keyframes enterCenter {
+  from { opacity: 0; transform: translateY(7px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.vertical-connector {
+  width: 2px;
+  height: 7px;
+  overflow: visible;
+}
+
+.vertical-connector line {
+  stroke: var(--branch);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  stroke-dasharray: 50;
+  stroke-dashoffset: 50;
+  vector-effect: non-scaling-stroke;
+}
+
+.vertical-connector line.animate {
+  animation: drawVertical var(--anim) ease-out forwards;
+}
+
+@keyframes drawVertical {
+  to { stroke-dashoffset: 0; }
+}
+
+/* =========================================================
+   SMALL / LARGE RESOLUTION GUARDS
+   ========================================================= */
+
+@media (max-width: 1366px), (max-height: 768px) {
+  :root {
+    --option-height: 38px;
+    --option-width: 194px;
+    --option-gap-y: 5px;
+    --connector-width: 24px;
+  }
+
+  .option-icon {
+    width: 25px;
+    height: 25px;
+    min-width: 25px;
+    font-size: 10px;
+  }
+
+  .option-label {
+    font-size: 10.5px;
+  }
+}
+
+@media (min-width: 2560px) and (min-height: 1200px) {
+  :root {
+    --option-height: 48px;
+    --option-width: 260px;
+    --option-gap-y: 10px;
+    --connector-width: 34px;
+  }
+
+  .option-icon {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    font-size: 12px;
+  }
+
+  .option-label {
+    font-size: 13px;
+  }
+}
+
+#interaction-hint{position:absolute;left:50%;top:calc(50% + 38px);transform:translateX(-50%);color:#c5d6b3;font-size:12px;letter-spacing:.08em;white-space:nowrap;background:rgba(9,16,18,.92);padding:9px 12px;border:1px solid #35413a;border-radius:4px}#interaction-hint[hidden]{display:none}#interaction-hint kbd{border:1px solid #b5c98f;padding:2px 6px;margin-right:8px}#interaction-hint span{font-size:10px;color:#9da9a2;margin-left:12px}.option-container.keyboard-selected{outline:1px solid #b5c98f;outline-offset:3px}
+#interaction-hint #interaction-label{margin:0;color:#eef4f0;font-size:13px;letter-spacing:.02em}#interaction-hint{display:flex;align-items:center;gap:8px}#interaction-hint kbd{margin:0}#interaction-hint[hidden]{display:none}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
 }
