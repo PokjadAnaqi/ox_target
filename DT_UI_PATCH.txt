@@ -1,0 +1,12 @@
+DT UI PATCH - Transparent NUI Fix
+
+- Fixed full-screen black background in FiveM NUI.
+- Explicitly forces html/body canvas to transparent.
+- Removed dark color-scheme meta that could make Chromium/FiveM render the page canvas black.
+- Target card/tree UI and Lua logic are unchanged.
+
+Space Grotesk refinement
+- Removed the previous Orbitron font import and font-family references.
+- Replaced the full target UI typography with Google Space Grotesk 300..700.
+- Retuned label tracking for Space Grotesk readability while keeping the compact target layout.
+- Preserved the transparent NUI background fix.

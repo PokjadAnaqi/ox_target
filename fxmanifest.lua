@@ -8,9 +8,9 @@ game 'gta5'
 -- Resource Information
 name 'ox_target'
 author 'Overextended'
-version '1.18.1'
-repository 'https://github.com/overextended/ox_target'
-description ''
+version '1.18.2'
+repository 'https://github.com/PokjadAnaqi/ox_target'
+description 'Delta custom target UI with E interaction and classic Alt debug mode'
 
 -- Manifest
 ui_page 'web/index.html'
